@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwitchBot ダッシュボード</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --accent: #00d4aa;
+    --accent2: #ff6b35;
+    --accent3: #4d9eff;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --danger: #ff4757;
+    --success: #00d4aa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+  }
+
+  header .subtitle { font-size: 0.8rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: pulse 2s infinite;
+  }
+  .status-dot.connected { background: var(--accent); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Config Section */
+  .config-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .config-panel h2 {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .field label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field input:focus { border-color: var(--accent); }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    padding: 10px 20px;
+    font-size: 0.85rem;
+  }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Device grid */
+  .devices-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .device-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .device-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .card-temp::before { background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+  .card-plug::before { background: linear-gradient(90deg, var(--accent2), #ffaa00); }
+  .card-ac::before { background: linear-gradient(90deg, var(--accent), var(--accent3)); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-icon { font-size: 1.5rem; }
+  .card-name { font-size: 1rem; font-weight: 700; }
+  .card-type { font-size: 0.7rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+
+  .device-select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-size: 0.75rem;
+    font-family: 'Share Tech Mono', monospace;
+    outline: none;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  /* Temperature display */
+  .temp-display {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .temp-value {
+    font-size: 4rem;
+    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent3);
+    line-height: 1;
+  }
+
+  .temp-unit { font-size: 1.5rem; color: var(--muted); }
+
+  .humidity-value {
+    font-size: 1.2rem;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    margin-top: 8px;
+  }
+
+  .last-updated {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    text-align: center;
+    margin-top: 12px;
+  }
+
+  /* Toggle switch */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .toggle-label { font-size: 0.9rem; }
+
+  .toggle {
+    position: relative;
+    width: 52px;
+    height: 28px;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 28px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 22px; height: 22px;
+    left: 3px; top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+  }
+
+  .toggle input:checked + .toggle-slider { background: var(--accent2); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(24px); }
+
+  /* AC Controls */
+  .ac-controls { display: flex; flex-direction: column; gap: 12px; }
+
+  .ac-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .ac-label { font-size: 0.8rem; color: var(--muted); min-width: 60px; }
+
+  .temp-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .temp-control span {
+    font-size: 1.4rem;
+    font-family: 'Share Tech Mono', monospace;
+    min-width: 48px;
+    text-align: center;
+  }
+
+  .btn-circle {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-circle:hover { border-color: var(--accent); color: var(--accent); }
+
+  .mode-buttons, .fan-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .btn-mode {
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.75rem;
+    border-radius: 6px;
+  }
+  .btn-mode.active {
+    background: var(--accent3);
+    border-color: var(--accent3);
+    color: #000;
+  }
+  .btn-mode:hover:not(.active) { border-color: var(--accent3); color: var(--accent3); }
+
+  .btn-ac-power {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 8px;
+  }
+  .btn-ac-power.on { border-color: var(--danger); color: var(--danger); }
+  .btn-ac-power.on:hover { background: var(--danger); color: white; }
+  .btn-ac-power.off { border-color: var(--accent3); color: var(--accent3); }
+  .btn-ac-power.off:hover { background: var(--accent3); color: #000; }
+
+  /* Refresh button */
+  .btn-refresh {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    border-radius: 6px;
+  }
+  .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Log */
+  .log-panel {
+    margin-top: 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .log-panel h2 {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+
+  .log-entries {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    max-height: 120px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .log-entry { color: var(--muted); }
+  .log-entry.success { color: var(--success); }
+  .log-entry.error { color: var(--danger); }
+  .log-entry.info { color: var(--accent3); }
+
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  select option { background: var(--panel); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="status-dot" id="statusDot"></div>
+  <div>
+    <h1>SwitchBot ダッシュボード</h1>
+    <div class="subtitle" id="statusText">未接続 — トークンを入力してください</div>
+  </div>
+</header>
+
+<!-- Config -->
+<div class="config-panel">
+  <h2>API 設定</h2>
+  <div class="config-grid">
+    <div class="field">
+      <label>TOKEN</label>
+      <input type="password" id="token" placeholder="SwitchBot APIトークン">
+    </div>
+    <div class="field">
+      <label>SECRET</label>
+      <input type="password" id="secret" placeholder="クライアントシークレット">
+    </div>
+    <button class="btn-primary" id="connectBtn" onclick="connect()">接続</button>
+  </div>
+</div>
+
+<!-- Devices -->
+<div class="devices-grid">
+
+  <!-- 温度計 -->
+  <div class="device-card card-temp">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-icon">🌡️</span>
+        <div>
+          <div class="card-name">温湿度計</div>
+          <div class="card-type">METER</div>
+        </div>
+      </div>
+      <button class="btn-refresh" onclick="fetchTemp()">更新</button>
+    </div>
+    <select class="device-select" id="tempDevice"><option value="">— デバイスを選択 —</option></select>
+    <div class="temp-display">
+      <div class="temp-value" id="tempVal">--<span class="temp-unit">°C</span></div>
+      <div class="humidity-value" id="humVal">💧 --%</div>
+    </div>
+    <div class="last-updated" id="tempUpdated">最終更新: —</div>
+  </div>
+
+  <!-- 電源コンセント -->
+  <div class="device-card card-plug">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-icon">🔌</span>
+        <div>
+          <div class="card-name">スマートプラグ</div>
+          <div class="card-type">PLUG</div>
+        </div>
+      </div>
+    </div>
+    <select class="device-select" id="plugDevice"><option value="">— デバイスを選択 —</option></select>
+    <div class="toggle-row">
+      <span class="toggle-label" id="plugLabel">電源: —</span>
+      <label class="toggle">
+        <input type="checkbox" id="plugToggle" onchange="togglePlug()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- エアコン -->
+  <div class="device-card card-ac">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-icon">❄️</span>
+        <div>
+          <div class="card-name">エアコン</div>
+          <div class="card-type">IR REMOTE</div>
+        </div>
+      </div>
+    </div>
+    <select class="device-select" id="acDevice"><option value="">— デバイスを選択 —</option></select>
+    <div class="ac-controls">
+      <div class="ac-row">
+        <span class="ac-label">温度</span>
+        <div class="temp-control">
+          <button class="btn-circle" onclick="changeAcTemp(-1)">−</button>
+          <span id="acTempVal">26</span>°C
+          <button class="btn-circle" onclick="changeAcTemp(1)">＋</button>
+        </div>
+      </div>
+      <div class="ac-row">
+        <span class="ac-label">モード</span>
+        <div class="mode-buttons">
+          <button class="btn-mode" data-mode="1" onclick="setMode(this)">冷房</button>
+          <button class="btn-mode" data-mode="2" onclick="setMode(this)">除湿</button>
+          <button class="btn-mode" data-mode="3" onclick="setMode(this)">送風</button>
+          <button class="btn-mode active" data-mode="4" onclick="setMode(this)">暖房</button>
+        </div>
+      </div>
+      <div class="ac-row">
+        <span class="ac-label">風量</span>
+        <div class="fan-buttons">
+          <button class="btn-mode active" data-fan="1" onclick="setFan(this)">自動</button>
+          <button class="btn-mode" data-fan="2" onclick="setFan(this)">弱</button>
+          <button class="btn-mode" data-fan="3" onclick="setFan(this)">中</button>
+          <button class="btn-mode" data-fan="4" onclick="setFan(this)">強</button>
+        </div>
+      </div>
+      <button class="btn-ac-power off" id="acPowerBtn" onclick="toggleAc()">電源 ON</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Log -->
+<div class="log-panel">
+  <h2>ログ</h2>
+  <div class="log-entries" id="logEntries">
+    <div class="log-entry info">[起動] ダッシュボードを読み込みました</div>
+  </div>
+</div>
+
+<script>
+const API = 'https://corsproxy.io/?https://api.switch-bot.com/v1.1';
+let devices = [];
+let acTemp = 26, acMode = 4, acFan = 1, acOn = false;
+
+function log(msg, type = '') {
+  const el = document.getElementById('logEntries');
+  const t = new Date().toLocaleTimeString('ja-JP');
+  const div = document.createElement('div');
+  div.className = `log-entry ${type}`;
+  div.textContent = `[${t}] ${msg}`;
+  el.prepend(div);
+  while (el.children.length > 20) el.removeChild(el.lastChild);
+}
+
+async function getHeaders() {
+  const token = document.getElementById('token').value.trim();
+  const secret = document.getElementById('secret').value.trim();
+  const t = Date.now().toString();
+  const nonce = crypto.randomUUID();
+  const msg = token + t + nonce;
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(msg));
+  const sign = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return { 'Authorization': token, 'sign': sign, 't': t, 'nonce': nonce, 'Content-Type': 'application/json' };
+}
+
+async function apiFetch(path, options = {}) {
+  const headers = await getHeaders();
+  const url = `${API}${path}`;
+  log(`リクエスト先: ${url}`, 'info');
+  try {
+    const res = await fetch(url, { ...options, headers });
+    log(`HTTPステータス: ${res.status} ${res.statusText}`, res.ok ? 'success' : 'error');
+    const text = await res.text();
+    log(`レスポンス: ${text.substring(0, 200)}`, 'info');
+    return JSON.parse(text);
+  } catch(e) {
+    log(`fetch失敗の詳細: ${e.name}: ${e.message}`, 'error');
+    throw e;
+  }
+}
+
+async function connect() {
+  const btn = document.getElementById('connectBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>接続中...';
+  log('デバイス一覧を取得中...', 'info');
+  try {
+    const data = await apiFetch('/devices');
+    if (data.statusCode !== 100) throw new Error(data.message || 'APIエラー');
+
+    devices = [...(data.body.deviceList || []), ...(data.body.infraredRemoteList || [])];
+    log(`${devices.length}台のデバイスを検出`, 'success');
+
+    populateSelect('tempDevice', devices.filter(d => d.deviceType?.includes('Meter') || d.deviceType?.includes('meter')));
+    populateSelect('plugDevice', devices.filter(d => d.deviceType?.includes('Plug') || d.deviceType?.includes('plug')));
+    populateSelect('acDevice', devices.filter(d => d.remoteType?.includes('Air') || d.deviceType?.includes('Air')));
+
+    document.getElementById('statusDot').classList.add('connected');
+    document.getElementById('statusText').textContent = `接続済み — ${devices.length}台`;
+    devices.forEach(d => log(`  ${d.deviceName} (${d.deviceType || d.remoteType})`, ''));
+  } catch(e) {
+    log('接続失敗: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '再接続';
+}
+
+function populateSelect(id, list) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '<option value="">— デバイスを選択 —</option>';
+  list.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.deviceId;
+    opt.textContent = d.deviceName;
+    sel.appendChild(opt);
+  });
+  if (list.length === 1) sel.value = list[0].deviceId;
+}
+
+async function fetchTemp() {
+  const id = document.getElementById('tempDevice').value;
+  if (!id) return log('温湿度計を選択してください', 'error');
+  log('温湿度データ取得中...', 'info');
+  try {
+    const data = await apiFetch(`/devices/${id}/status`);
+    if (data.statusCode !== 100) throw new Error(data.message);
+    const { temperature, humidity } = data.body;
+    document.getElementById('tempVal').innerHTML = `${temperature}<span class="temp-unit">°C</span>`;
+    document.getElementById('humVal').textContent = `💧 ${humidity}%`;
+    document.getElementById('tempUpdated').textContent = `最終更新: ${new Date().toLocaleTimeString('ja-JP')}`;
+    log(`温度: ${temperature}°C / 湿度: ${humidity}%`, 'success');
+  } catch(e) { log('取得失敗: ' + e.message, 'error'); }
+}
+
+async function togglePlug() {
+  const id = document.getElementById('plugDevice').value;
+  const on = document.getElementById('plugToggle').checked;
+  if (!id) { document.getElementById('plugToggle').checked = !on; return log('プラグを選択してください', 'error'); }
+  const cmd = on ? 'turnOn' : 'turnOff';
+  log(`プラグ ${on ? 'ON' : 'OFF'} 送信中...`, 'info');
+  try {
+    const data = await apiFetch(`/devices/${id}/commands`, {
+      method: 'POST',
+      body: JSON.stringify({ command: cmd, parameter: 'default', commandType: 'command' })
+    });
+    if (data.statusCode !== 100) throw new Error(data.message);
+    document.getElementById('plugLabel').textContent = `電源: ${on ? 'ON ✓' : 'OFF'}`;
+    log(`プラグ ${on ? 'ON' : 'OFF'} 完了`, 'success');
+  } catch(e) {
+    document.getElementById('plugToggle').checked = !on;
+    log('コマンド失敗: ' + e.message, 'error');
+  }
+}
+
+function changeAcTemp(delta) {
+  acTemp = Math.min(30, Math.max(16, acTemp + delta));
+  document.getElementById('acTempVal').textContent = acTemp;
+}
+
+function setMode(btn) {
+  document.querySelectorAll('.mode-buttons .btn-mode').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  acMode = parseInt(btn.dataset.mode);
+}
+
+function setFan(btn) {
+  document.querySelectorAll('.fan-buttons .btn-mode').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  acFan = parseInt(btn.dataset.fan);
+}
+
+async function toggleAc() {
+  const id = document.getElementById('acDevice').value;
+  if (!id) return log('エアコンデバイスを選択してください', 'error');
+  
+  if (acOn) {
+    log('エアコン OFF 送信中...', 'info');
+    try {
+      const data = await apiFetch(`/devices/${id}/commands`, {
+        method: 'POST',
+        body: JSON.stringify({ command: 'turnOff', parameter: 'default', commandType: 'command' })
+      });
+      if (data.statusCode !== 100) throw new Error(data.message);
+      acOn = false;
+      const btn = document.getElementById('acPowerBtn');
+      btn.textContent = '電源 ON'; btn.className = 'btn-ac-power off';
+      log('エアコン OFF 完了', 'success');
+    } catch(e) { log('コマンド失敗: ' + e.message, 'error'); }
+  } else {
+    log(`エアコン ON (${acTemp}°C, モード:${acMode}, 風量:${acFan}) 送信中...`, 'info');
+    try {
+      const data = await apiFetch(`/devices/${id}/commands`, {
+        method: 'POST',
+        body: JSON.stringify({ command: 'setAll', parameter: `${acTemp},${acMode},${acFan},on`, commandType: 'command' })
+      });
+      if (data.statusCode !== 100) throw new Error(data.message);
+      acOn = true;
+      const btn = document.getElementById('acPowerBtn');
+      btn.textContent = '電源 OFF'; btn.className = 'btn-ac-power on';
+      log(`エアコン ON 完了`, 'success');
+    } catch(e) { log('コマンド失敗: ' + e.message, 'error'); }
+  }
+}
+
+// 温度計は1分ごとに自動更新
+setInterval(() => {
+  if (document.getElementById('tempDevice').value) fetchTemp();
+}, 60000);
+</script>
+</body>
+</html>
